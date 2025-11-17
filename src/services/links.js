@@ -9,33 +9,56 @@ import {
   query,
   where,
   orderBy,
-  limit,
   increment,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { nanoid } from "nanoid";
 
-// Crear nuevo enlace
+// Función para crear nuevo enlace
 export const createLink = async (linkData) => {
   try {
-    const { originalUrl, customSlug, password, userId } = linkData;
+    const {
+      originalUrl,
+      customSlug,
+      password,
+      userId,
+      userEmail,
+      customMessage,
+    } = linkData;
 
-    // Generar short_code (slug)
-    const shortCode = customSlug || nanoid(6);
+    // Generar short_code único
+    let shortCode = customSlug || nanoid(6);
+    let attempts = 0;
 
-    // Crear short_url (usaremos el dominio de tu app)
+    // Verificar que el short_code sea único
+    while (attempts < 5) {
+      const existingLink = await getLinkByShortCode(shortCode);
+
+      if (!existingLink) {
+        break; // short_code es único
+      }
+
+      shortCode = nanoid(6);
+      attempts++;
+    }
+
+    // Crear short_url
     const shortUrl = `${window.location.origin}/l/${shortCode}`;
 
+    // Crear documento del enlace
     const linkDoc = {
       original_url: originalUrl,
       short_code: shortCode,
       short_url: shortUrl,
       password: password ? await hashPassword(password) : null,
-      created_at: new Date(),
+      custom_message: customMessage || null,
+      created_at: serverTimestamp(),
       clicks: 0,
       owner_uid: userId,
       is_active: true,
       expiration_date: null,
+      title: getUrlTitle(originalUrl),
     };
 
     const docRef = await addDoc(collection(db, "links"), linkDoc);
@@ -50,13 +73,14 @@ export const createLink = async (linkData) => {
   }
 };
 
-// Obtener enlaces del usuario
+// Obtener enlaces del usuario (VERSIÓN TEMPORAL SIN ÍNDICE)
 export const getUserLinks = async (userId) => {
   try {
+    // Consulta simple sin orderBy mientras se crea el índice
     const q = query(
       collection(db, "links"),
-      where("owner_uid", "==", userId),
-      orderBy("created_at", "desc")
+      where("owner_uid", "==", userId)
+      // Temporalmente comentado: orderBy('created_at', 'desc')
     );
 
     const querySnapshot = await getDocs(q);
@@ -69,20 +93,33 @@ export const getUserLinks = async (userId) => {
       });
     });
 
-    return links;
+    // Ordenar manualmente en el cliente
+    return links.sort((a, b) => {
+      try {
+        const dateA =
+          a.created_at?.toDate?.() || new Date(a.created_at) || new Date(0);
+        const dateB =
+          b.created_at?.toDate?.() || new Date(b.created_at) || new Date(0);
+        return dateB - dateA; // Orden descendente
+      } catch (error) {
+        return 0;
+      }
+    });
   } catch (error) {
     console.error("Error obteniendo enlaces:", error);
-    throw error;
+    // Si hay error, retornar array vacío
+    return [];
   }
 };
 
-// Obtener enlace por short_code para redirección
+// Obtener enlace por short_code (VERSIÓN TEMPORAL)
 export const getLinkByShortCode = async (shortCode) => {
   try {
+    // Consulta simple sin índice compuesto
     const q = query(
       collection(db, "links"),
-      where("short_code", "==", shortCode),
-      where("is_active", "==", true)
+      where("short_code", "==", shortCode)
+      // Temporalmente comentado: where('is_active', '==', true)
     );
 
     const querySnapshot = await getDocs(q);
@@ -92,13 +129,20 @@ export const getLinkByShortCode = async (shortCode) => {
     }
 
     const doc = querySnapshot.docs[0];
+    const linkData = doc.data();
+
+    // Filtrar manualmente por is_active
+    if (linkData.is_active === false) {
+      return null;
+    }
+
     return {
       id: doc.id,
-      ...doc.data(),
+      ...linkData,
     };
   } catch (error) {
     console.error("Error obteniendo enlace:", error);
-    throw error;
+    return null;
   }
 };
 
@@ -119,7 +163,7 @@ export const addClickLog = async (linkId, clickData) => {
   try {
     await addDoc(collection(db, "click_logs", linkId, "logs"), {
       ...clickData,
-      timestamp: new Date(),
+      timestamp: serverTimestamp(),
     });
   } catch (error) {
     console.error("Error registrando click:", error);
@@ -147,18 +191,38 @@ export const deleteLink = async (linkId) => {
   }
 };
 
-// Función simple de hash (en producción usa bcrypt)
+// Función simple de hash
 const hashPassword = async (password) => {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  try {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hash = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hash))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch (error) {
+    console.error("Error hashing password:", error);
+    throw error;
+  }
 };
 
 // Verificar contraseña
 export const verifyPassword = async (inputPassword, storedHash) => {
-  const inputHash = await hashPassword(inputPassword);
-  return inputHash === storedHash;
+  try {
+    const inputHash = await hashPassword(inputPassword);
+    return inputHash === storedHash;
+  } catch (error) {
+    console.error("Error verificando password:", error);
+    return false;
+  }
+};
+
+// Función para extraer título de la URL
+const getUrlTitle = (url) => {
+  try {
+    const domain = new URL(url).hostname;
+    return domain.replace("www.", "").split(".")[0];
+  } catch {
+    return "Enlace";
+  }
 };

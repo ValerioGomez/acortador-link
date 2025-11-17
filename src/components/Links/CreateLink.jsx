@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link2, Lock, Copy, Check } from "lucide-react";
+import { Link2, Lock, Copy, Check, MessageCircle } from "lucide-react";
 import { useLinks } from "../../hooks/useLinks";
 import { useAnalytics } from "../../hooks/useAnalytics";
 
@@ -9,6 +9,7 @@ const CreateLink = () => {
     customSlug: "",
     password: "",
     hasPassword: false,
+    customMessage: "", // ← NUEVO CAMPO
   });
   const [generatedLink, setGeneratedLink] = useState("");
   const [copied, setCopied] = useState(false);
@@ -21,8 +22,6 @@ const CreateLink = () => {
     try {
       const newLink = await addLink(formData);
       setGeneratedLink(newLink.short_url);
-
-      // Tracking del enlace creado
       trackLinkCreated(newLink);
     } catch (error) {
       console.error("Error creando enlace:", error);
@@ -116,7 +115,7 @@ const CreateLink = () => {
           </div>
 
           {/* Protección con Contraseña */}
-          <div>
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <label
                 htmlFor="hasPassword"
@@ -144,20 +143,60 @@ const CreateLink = () => {
             </div>
 
             {formData.hasPassword && (
-              <div className="mt-3">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
+              <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                {/* Campo Contraseña */}
+                <div>
+                  <label
+                    htmlFor="password"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Contraseña *
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="password"
+                      id="password"
+                      required={formData.hasPassword}
+                      value={formData.password}
+                      onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                      }
+                      className="input-field pl-10"
+                      placeholder="Contraseña para proteger el enlace"
+                    />
                   </div>
-                  <input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) =>
-                      handleInputChange("password", e.target.value)
-                    }
-                    className="input-field pl-10"
-                    placeholder="Contraseña para el enlace"
-                  />
+                </div>
+
+                {/* Campo Mensaje Opcional */}
+                <div>
+                  <label
+                    htmlFor="customMessage"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Mensaje Opcional
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none pt-3">
+                      <MessageCircle className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <textarea
+                      id="customMessage"
+                      rows={3}
+                      value={formData.customMessage}
+                      onChange={(e) =>
+                        handleInputChange("customMessage", e.target.value)
+                      }
+                      className="input-field pl-10 resize-none"
+                      placeholder="Este mensaje se mostrará cuando pidan la contraseña. Ej: 'Para acceder al contenido premium, ingresa la contraseña proporcionada en el evento.'"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Mensaje personalizado que verán los usuarios al acceder al
+                    enlace protegido
+                  </p>
                 </div>
               </div>
             )}
@@ -211,9 +250,17 @@ const CreateLink = () => {
               <strong>URL Original:</strong> {formData.originalUrl}
             </p>
             {formData.hasPassword && (
-              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                <strong>Protegido con contraseña:</strong> Sí
-              </p>
+              <>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  <strong>Protegido con contraseña:</strong> Sí
+                </p>
+                {formData.customMessage && (
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                    <strong>Mensaje personalizado:</strong>{" "}
+                    {formData.customMessage}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>

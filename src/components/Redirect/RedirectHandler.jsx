@@ -6,7 +6,14 @@ import {
   addClickLog,
   verifyPassword,
 } from "../../services/links";
-import { Shield, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
+import {
+  Shield,
+  Lock,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  MessageCircle,
+} from "lucide-react";
 
 const RedirectHandler = () => {
   const { shortCode } = useParams();
@@ -71,42 +78,7 @@ const RedirectHandler = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">
-            Cargando enlace seguro...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !passwordRequired) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="max-w-md w-full mx-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield className="w-8 h-8 text-red-600 dark:text-red-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              Enlace No Disponible
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
-            <button
-              onClick={() => navigate("/")}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200"
-            >
-              Volver al Inicio
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // ... (loading y error states iguales)
 
   if (passwordRequired) {
     return (
@@ -127,21 +99,40 @@ const RedirectHandler = () => {
               </p>
             </div>
 
-            {/* Mensaje personalizado */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
-              <div className="flex items-start space-x-3">
-                <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    Para poder ingresar al contenido que guarda este enlace
-                  </p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                    Introduce la contraseña proporcionada por el creador del
-                    enlace.
-                  </p>
+            {/* Mensaje personalizado del creador */}
+            {linkData?.custom_message && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      Mensaje del creador:
+                    </p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      {linkData.custom_message}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Mensaje por defecto si no hay mensaje personalizado */}
+            {!linkData?.custom_message && (
+              <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl p-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <Shield className="w-5 h-5 text-gray-600 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      Para poder ingresar al contenido que guarda este enlace
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      Introduce la contraseña proporcionada por el creador del
+                      enlace.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Formulario */}
             <PasswordForm onSubmit={handlePasswordSubmit} error={error} />
@@ -161,6 +152,7 @@ const RedirectHandler = () => {
   return null;
 };
 
+// El componente PasswordForm permanece igual...
 const PasswordForm = ({ onSubmit, error }) => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

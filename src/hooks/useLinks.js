@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { Timestamp } from "firebase/firestore";
-import { createLink, getUserLinks, deleteLink } from "../services/links";
+import {
+  createLink,
+  getUserLinks,
+  updateLink,
+  deleteLink,
+} from "../services/links";
 
 export const useLinks = () => {
   const [links, setLinks] = useState([]);
@@ -9,22 +13,37 @@ export const useLinks = () => {
   const [error, setError] = useState(null);
   const { user } = useAuth();
 
+  // Cargar enlaces del usuario
+  const loadLinks = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const userLinks = await getUserLinks(user.uid);
+      setLinks(userLinks);
+    } catch (err) {
+      setError(err.message);
+      console.error("Error cargando enlaces:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Crear nuevo enlace
   const addLink = async (linkData) => {
     setLoading(true);
+    setError(null);
+
     try {
       const newLink = await createLink({
         ...linkData,
         userId: user.uid,
+        userEmail: user.email,
       });
 
-      // Asegurarse de que el nuevo enlace tenga un timestamp compatible para ordenar
-      const linkWithTimestamp = {
-        ...newLink,
-        created_at: Timestamp.fromDate(newLink.created_at),
-      };
-
-      setLinks((prev) => [linkWithTimestamp, ...prev]);
-      // La lista ya está ordenada por `getUserLinks`, el nuevo se añade al principio.
+      setLinks((prev) => [newLink, ...prev]);
       return newLink;
     } catch (err) {
       setError(err.message);
@@ -34,8 +53,33 @@ export const useLinks = () => {
     }
   };
 
+  // Actualizar enlace
+  const editLink = async (linkId, updateData) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await updateLink(linkId, updateData);
+
+      // Actualizar estado local
+      setLinks((prev) =>
+        prev.map((link) =>
+          link.id === linkId ? { ...link, ...updateData } : link
+        )
+      );
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Eliminar enlace
   const removeLink = async (linkId) => {
     setLoading(true);
+    setError(null);
+
     try {
       await deleteLink(linkId);
       setLinks((prev) => prev.filter((link) => link.id !== linkId));
@@ -47,24 +91,9 @@ export const useLinks = () => {
     }
   };
 
+  // Cargar enlaces al montar el hook
   useEffect(() => {
-    const fetchLinks = async () => {
-      if (!user) {
-        setLinks([]);
-        return;
-      }
-      setLoading(true);
-      try {
-        const userLinks = await getUserLinks(user.uid);
-        setLinks(userLinks);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLinks();
+    loadLinks();
   }, [user]);
 
   return {
@@ -72,6 +101,8 @@ export const useLinks = () => {
     loading,
     error,
     addLink,
+    editLink,
     removeLink,
+    refreshLinks: loadLinks,
   };
 };
