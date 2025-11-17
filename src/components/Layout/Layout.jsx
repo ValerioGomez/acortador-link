@@ -24,16 +24,14 @@ const Layout = () => {
   usePageTracking(getPageTitle(location.pathname));
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="relative flex h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
 
-      <div className="flex-1 flex flex-col lg:pl-64">
+      <div className="flex-1 flex flex-col">
         <Header setSidebarOpen={setSidebarOpen} />
 
         <main className="flex-1 overflow-auto">
-          <div className="p-6">
-            <Outlet />
-          </div>
+          <Outlet />
         </main>
       </div>
     </div>
