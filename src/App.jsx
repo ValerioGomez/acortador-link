@@ -3,10 +3,12 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+  Link,
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { Toaster } from "react-hot-toast";
 import Layout from "./components/Layout/Layout";
 import Login from "./components/Auth/Login";
 import Register from "./components/Auth/Register";
@@ -70,6 +72,16 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <Router>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              className: "dark:bg-gray-700 dark:text-white",
+              duration: 4000,
+              success: {
+                iconTheme: { primary: "#2563eb", secondary: "white" },
+              },
+            }}
+          />
           <Routes>
             {/* Rutas públicas */}
             <Route

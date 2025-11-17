@@ -1,12 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLinks } from "../../hooks/useLinks";
-import { Eye, Copy, Edit, Trash2, Link2, Search } from "lucide-react";
+import { Eye, Copy, Edit, Trash2, Link2, Search, Lock } from "lucide-react";
+import toast from "react-hot-toast";
+import ConfirmDialog from "./ConfirmDialog";
+import Modal from "./Modal";
 
 const LinkHistory = () => {
-  const { links, loading, error, removeLink } = useLinks();
+  const { links, loading, error, removeLink, editLink } = useLinks();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const linksPerPage = 10;
+
+  // Estados para los modales
+  const [linkToDelete, setLinkToDelete] = useState(null);
+  const [linkToEdit, setLinkToEdit] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    original_url: "",
+    custom_slug: "",
+  });
 
   // Filtrar enlaces basado en búsqueda
   const filteredLinks = links.filter(
@@ -22,20 +33,53 @@ const LinkHistory = () => {
   const totalPages = Math.ceil(filteredLinks.length / linksPerPage);
 
   const handleCopy = async (url) => {
-    try {
-      await navigator.clipboard.writeText(url);
-      // Podrías agregar un toast de confirmación aquí
-    } catch (err) {
-      console.error("Error al copiar:", err);
+    await navigator.clipboard.writeText(url);
+    toast.success("Enlace copiado al portapapeles");
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (linkToDelete) {
+      try {
+        const promise = removeLink(linkToDelete.id);
+        await toast.promise(promise, {
+          loading: "Eliminando enlace...",
+          success: "Enlace eliminado con éxito",
+          error: (err) => err.message || "Error al eliminar el enlace",
+        });
+      } catch (error) {
+        console.error("Fallo la eliminación:", error);
+      } finally {
+        setLinkToDelete(null);
+      }
     }
   };
 
-  const handleDelete = async (linkId) => {
-    if (window.confirm("¿Estás seguro de que quieres eliminar este enlace?")) {
+  const handleEditOpen = (link) => {
+    setLinkToEdit(link);
+    setEditFormData({
+      original_url: link.original_url,
+      custom_slug: link.short_code,
+    });
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (linkToEdit) {
       try {
-        await removeLink(linkId);
+        const promise = editLink(linkToEdit.id, {
+          original_url: editFormData.original_url,
+          // No permitimos editar el slug por ahora para simplicidad
+        });
+
+        await toast.promise(promise, {
+          loading: "Actualizando enlace...",
+          success: "Enlace actualizado con éxito",
+          error: (err) => err.message || "Error al actualizar el enlace",
+        });
       } catch (error) {
-        console.error("Error eliminando enlace:", error);
+        console.error("Fallo la edición:", error);
+      } finally {
+        setLinkToEdit(null);
       }
     }
   };
@@ -44,6 +88,11 @@ const LinkHistory = () => {
     if (!timestamp) return "N/A";
     return new Date(timestamp.seconds * 1000).toLocaleDateString("es-ES");
   };
+
+  useEffect(() => {
+    // Resetear página si los filtros cambian y la página actual queda fuera de rango
+    if (currentPage > totalPages) setCurrentPage(Math.max(totalPages, 1));
+  }, [searchTerm, links, currentPage, totalPages]);
 
   if (loading) {
     return (
@@ -172,18 +221,19 @@ const LinkHistory = () => {
                         <button
                           onClick={() => handleCopy(link.short_url)}
                           className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                          title="Copiar"
+                          title="Copiar enlace corto"
                         >
                           <Copy className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => handleEditOpen(link)}
                           className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
-                          title="Editar"
+                          title="Editar URL original"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(link.id)}
+                          onClick={() => setLinkToDelete(link)}
                           className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                           title="Eliminar"
                         >
