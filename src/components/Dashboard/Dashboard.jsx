@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLinks } from "../../hooks/useLinks";
 import { getUserStats, getClicksOverTime } from "../../services/stats";
-import { getUserLinks } from "../../services/links";
 import {
   Link as LinkIcon,
   Plus,
@@ -10,6 +10,8 @@ import {
   Eye,
   TrendingUp,
   LineChart as LineChartIcon,
+  Copy,
+  Check,
 } from "lucide-react";
 import {
   AreaChart,
@@ -19,52 +21,82 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import Modal from "../Links/Modal";
+import CreateLinkForm from "../Links/CreateLinkForm";
+import toast from "react-hot-toast";
+import { useAnalytics } from "../../hooks/useAnalytics";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { links, addLink, loading: linksLoading, refreshLinks } = useLinks();
+  const { trackLinkCreated } = useAnalytics();
   const [stats, setStats] = useState(null);
-  const [recentLinks, setRecentLinks] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [chartData, setChartData] = useState([]);
+  const [isCreating, setIsCreating] = useState(false); // Estado de carga local
   const [error, setError] = useState(null);
+  const [isCreateModalOpen, setCreateModalOpen] = useState(false);
+  const [generatedLinkDetails, setGeneratedLinkDetails] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
-
-      setLoading(true);
       setError(null);
-
       try {
-        const [userStats, userLinks] = await Promise.all([
-          getUserStats(user.uid),
-          getUserLinks(user.uid),
-        ]);
-
+        // Solo necesitamos obtener las estadísticas aquí.
+        // refreshLinks() ya es llamado por el hook useLinks al inicio.
+        const userStats = await getUserStats(user.uid);
         setStats(userStats);
-        setRecentLinks(userLinks.slice(0, 3)); // Tomamos los 3 más recientes
-
-        // Encontrar el enlace más popular y obtener sus datos para el gráfico
-        if (userLinks.length > 0) {
-          const topLink = [...userLinks].sort(
-            (a, b) => (b.clicks || 0) - (a.clicks || 0)
-          )[0];
-          if (topLink && topLink.clicks > 0) {
-            const clicksData = await getClicksOverTime(topLink.id, 15); // Clicks de los últimos 15 días
-            setChartData(clicksData);
-          }
-        }
       } catch (err) {
         setError("No se pudo cargar la información del dashboard.");
         console.error(err);
-      } finally {
-        setLoading(false);
       }
     };
-
     fetchData();
-  }, [user]);
+  }, [user, refreshLinks]);
+
+  // Este useEffect se ejecuta DESPUÉS de que 'links' se actualice
+  useEffect(() => {
+    if (links.length > 0) {
+      const topLink = [...links].sort(
+        (a, b) => (b.clicks || 0) - (a.clicks || 0)
+      )[0];
+      if (topLink && topLink.clicks > 0) {
+        getClicksOverTime(topLink.id, 15).then(setChartData);
+      }
+    }
+  }, [links]); // Se dispara cuando 'links' cambia
+
+  const handleCreateSubmit = async (formData, clearForm) => {
+    try {
+      setIsCreating(true);
+      const newLink = await addLink(formData);
+      trackLinkCreated(newLink);
+      setGeneratedLinkDetails(newLink); // Guardar para el modal de resultado
+      clearForm(); // Limpiar el formulario en el modal
+      setCreateModalOpen(false); // Cerrar el modal de creación
+      toast.success("¡Enlace creado exitosamente!");
+    } catch (error) {
+      console.error("Error creando enlace:", error);
+      toast.error("No se pudo crear el enlace.");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleCopyInModal = async () => {
+    if (!generatedLinkDetails) return;
+    await navigator.clipboard.writeText(generatedLinkDetails.short_url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCloseSuccessModal = () => {
+    setGeneratedLinkDetails(null); // No es necesario refrescar, useLinks ya lo hizo.
+  };
+
+  const recentLinks = links.slice(0, 3);
 
   const statCards = stats
     ? [
@@ -95,7 +127,7 @@ const Dashboard = () => {
       ]
     : [];
 
-  if (loading) {
+  if (linksLoading || !stats) {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -121,7 +153,7 @@ const Dashboard = () => {
         </div>
         <div className="mt-4 sm:mt-0">
           <button
-            onClick={() => navigate("/crear")}
+            onClick={() => setCreateModalOpen(true)}
             className="btn-primary flex items-center space-x-2"
           >
             <Plus className="w-4 h-4" />
@@ -276,6 +308,68 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Modal para Crear Enlace */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        title="Crear Nuevo Enlace"
+      >
+        <CreateLinkForm loading={isCreating} onSubmit={handleCreateSubmit} />
+      </Modal>
+
+      {/* Modal de Confirmación de Enlace Creado */}
+      <Modal
+        isOpen={!!generatedLinkDetails}
+        onClose={handleCloseSuccessModal}
+        title="¡Enlace Creado Exitosamente!"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center space-x-3">
+            <input
+              type="text"
+              readOnly
+              value={generatedLinkDetails?.short_url || ""}
+              className="input-field flex-1 font-mono text-sm"
+            />
+            <button
+              onClick={handleCopyInModal}
+              className="btn-secondary flex items-center space-x-2 min-w-[100px]"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span>Copiado</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4" />
+                  <span>Copiar</span>
+                </>
+              )}
+            </button>
+          </div>
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <p className="text-sm text-blue-700 dark:text-blue-300 break-all">
+              <strong>URL Original:</strong>{" "}
+              {generatedLinkDetails?.original_url}
+            </p>
+            {generatedLinkDetails?.password && (
+              <>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  <strong>Protegido con contraseña:</strong> Sí
+                </p>
+                {generatedLinkDetails?.custom_message && (
+                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                    <strong>Mensaje personalizado:</strong>{" "}
+                    {generatedLinkDetails.custom_message}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

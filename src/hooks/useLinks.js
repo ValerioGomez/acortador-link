@@ -33,23 +33,18 @@ export const useLinks = () => {
 
   // Crear nuevo enlace
   const addLink = async (linkData) => {
-    setLoading(true);
-    setError(null);
-
     try {
       const newLink = await createLink({
         ...linkData,
         userId: user.uid,
         userEmail: user.email,
       });
-
+      // Actualizar el estado localmente sin recargar todo
       setLinks((prev) => [newLink, ...prev]);
       return newLink;
     } catch (err) {
       setError(err.message);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
