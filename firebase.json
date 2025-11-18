@@ -6,8 +6,6 @@
       {
         "source": "/l/**",
         "destination": "/index.html"
-        "source": "/l/:shortCode*",
-        "function": "redirect"
       },
       {
         "source": "**",
