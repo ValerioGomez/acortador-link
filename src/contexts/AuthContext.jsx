@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  updateProfile,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "../services/firebase";
@@ -26,33 +27,19 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        // Intentar obtener datos del usuario, pero continuar aunque falle
         try {
-          // Inicializar usuario sin bloquear si hay error
-          await initializeUser(user.uid, user.email);
-
-          // Intentar obtener datos del usuario, pero continuar aunque falle
-          try {
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            const userData = {
-              uid: user.uid,
-              email: user.email,
-              ...userDoc.data(),
-            };
-            setUser(userData);
-          } catch (dbError) {
-            console.warn(
-              "Error obteniendo datos de usuario, usando datos básicos:",
-              dbError
-            );
-            setUser({
-              uid: user.uid,
-              email: user.email,
-              plan: "free",
-            });
-          }
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          const userData = {
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName, // Usar el displayName de Firebase Auth
+            ...userDoc.data(),
+          };
+          setUser(userData);
         } catch (error) {
-          console.warn(
-            "Error en inicialización, continuando con datos básicos:",
+          console.error(
+            "Error obteniendo datos de Firestore, usando datos de Auth:",
             error
           );
           setUser({
@@ -71,41 +58,30 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const { user } = await signInWithEmailAndPassword(auth, email, password);
-
-    // Inicializar usuario sin bloquear si hay error
-    try {
-      await initializeUser(user.uid, user.email);
-    } catch (error) {
-      console.warn("Error inicializando usuario después de login:", error);
-    }
-
-    return {
-      uid: user.uid,
-      email: user.email,
-      plan: "free",
-    };
+    return signInWithEmailAndPassword(auth, email, password);
   };
 
-  const register = async (email, password) => {
+  const signup = async (email, password, firstName, lastName) => {
     const { user } = await createUserWithEmailAndPassword(
       auth,
       email,
       password
     );
 
-    // Inicializar usuario sin bloquear si hay error
+    const displayName = `${firstName} ${lastName}`.trim();
+
+    // 1. Actualizar el perfil de Firebase Auth
+    await updateProfile(user, { displayName });
+
+    // 2. Crear el documento en Firestore
     try {
-      await initializeUser(user.uid, user.email);
+      await initializeUser(user, firstName, lastName);
     } catch (error) {
       console.warn("Error inicializando usuario después de registro:", error);
     }
 
-    return {
-      uid: user.uid,
-      email: user.email,
-      plan: "free",
-    };
+    // Devolver el usuario con el perfil actualizado
+    return user;
   };
 
   const logout = () => {
@@ -115,7 +91,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     login,
-    register,
+    signup,
     logout,
     loading,
   };

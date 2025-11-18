@@ -1,12 +1,83 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { getUserLinks } from "../../services/links";
 import { Moon, Sun, Bell, Shield, User, Globe } from "lucide-react";
+import toast from "react-hot-toast";
 
 const Settings = () => {
   const { isDark, toggleTheme } = useTheme();
+  const { user } = useAuth();
+  const [exporting, setExporting] = useState(false);
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+
+  const handleExportCSV = async () => {
+    if (!user) return;
+
+    setExporting(true);
+    const toastId = toast.loading("Exportando enlaces...");
+
+    try {
+      const linksToExport = await getUserLinks(user.uid, dateRange);
+
+      if (linksToExport.length === 0) {
+        toast.error(
+          "No hay enlaces para exportar en el período seleccionado.",
+          { id: toastId }
+        );
+        return;
+      }
+
+      const headers = [
+        "Enlace Corto",
+        "URL Original",
+        "Clicks",
+        "Fecha de Creación",
+      ];
+      const rows = linksToExport.map((link) => [
+        `"${link.short_url}"`,
+        `"${link.original_url}"`,
+        link.clicks || 0,
+        link.created_at
+          ? new Date(link.created_at.seconds * 1000).toISOString()
+          : "N/A",
+      ]);
+
+      let csvContent =
+        "data:text/csv;charset=utf-8," +
+        headers.join(",") +
+        "\n" +
+        rows.map((e) => e.join(",")).join("\n");
+
+      const encodedUri = encodeURI(csvContent);
+      const linkElement = document.createElement("a");
+      linkElement.setAttribute("href", encodedUri);
+      linkElement.setAttribute(
+        "download",
+        `enlaces_${dateRange.start}_a_${dateRange.end}.csv`
+      );
+      document.body.appendChild(linkElement);
+      linkElement.click();
+      document.body.removeChild(linkElement);
+
+      toast.success("Exportación completada.", { id: toastId });
+    } catch (error) {
+      console.error("Error al exportar:", error);
+      toast.error("No se pudo completar la exportación.", { id: toastId });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDateChange = (e) => {
+    setDateRange({
+      ...dateRange,
+      [e.target.name]: e.target.value,
+    });
+  };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -154,10 +225,54 @@ const Settings = () => {
             <p className="font-medium text-gray-900 dark:text-white">
               Exportar Datos
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              Descarga todos tus enlaces y estadísticas
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Descarga tus enlaces en formato CSV. Puedes filtrar por un rango
+              de fechas.
             </p>
-            <button className="btn-secondary text-sm">Exportar a CSV</button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label
+                  htmlFor="start-date"
+                  className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                >
+                  Fecha de inicio
+                </label>
+                <input
+                  type="date"
+                  name="start"
+                  id="start-date"
+                  value={dateRange.start}
+                  onChange={handleDateChange}
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="end-date"
+                  className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                >
+                  Fecha de fin
+                </label>
+                <input
+                  type="date"
+                  name="end"
+                  id="end-date"
+                  value={dateRange.end}
+                  onChange={handleDateChange}
+                  className="input-field"
+                />
+              </div>
+            </div>
+            <button
+              onClick={handleExportCSV}
+              disabled={exporting}
+              className="btn-secondary text-sm w-full sm:w-auto"
+            >
+              {exporting ? "Exportando..." : "Exportar a CSV"}
+            </button>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Si no seleccionas fechas, se exportarán todos tus enlaces.
+            </p>
           </div>
         </div>
       </div>

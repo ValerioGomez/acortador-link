@@ -1,168 +1,175 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { Mail, Lock, User, AlertCircle } from "lucide-react";
+import { Mail, Lock, AlertCircle, Link2, Loader, User } from "lucide-react";
 
 const Register = () => {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
+  const { signup } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!email || !password) {
-      return setError("Por favor completa todos los campos");
-    }
-
-    if (password !== confirmPassword) {
-      return setError("Las contraseñas no coinciden");
+    if (!firstName || !lastName || !email || !password) {
+      return setError("Por favor completa todos los campos.");
     }
 
     if (password.length < 6) {
-      return setError("La contraseña debe tener al menos 6 caracteres");
+      return setError("La contraseña debe tener al menos 6 caracteres.");
     }
 
     try {
       setError("");
       setLoading(true);
-      await register(email, password);
+      await signup(email, password, firstName, lastName);
       navigate("/dashboard");
     } catch (error) {
-      setError("Error al crear la cuenta: " + error.message);
+      if (error.code === "auth/email-already-in-use") {
+        setError(
+          "Este correo electrónico ya está registrado. Comuníquese con soporte."
+        );
+      } else {
+        setError("Error al crear la cuenta. Por favor, inténtalo de nuevo.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div>
-          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
-            <User className="h-6 w-6 text-white" />
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4">
+      <div className="flex w-full max-w-5xl mx-auto overflow-hidden bg-white dark:bg-gray-800 rounded-2xl shadow-lg">
+        {/* Columna de Información */}
+        <div className="hidden md:flex md:w-1/2 flex-col justify-between p-12 bg-slate-800 text-white">
+          <div className="space-y-5">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Link2 className="w-7 h-7 text-white" />
+              </div>
+              <h2 className="text-4xl font-bold leading-tight">LinkShort</h2>
+            </div>
+            <p className="text-blue-200 text-lg">
+              Únete a la comunidad y empieza a acortar, gestionar y analizar tus
+              enlaces.
+            </p>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Crear Cuenta
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            O{" "}
-            <Link
-              to="/login"
-              className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
-            >
-              inicia sesión en tu cuenta
-            </Link>
-          </p>
+          <div>
+            <p className="text-sm text-blue-200">
+              © {new Date().getFullYear()} LinkShort. Todos los derechos
+              reservados.
+            </p>
+          </div>
         </div>
 
-        {/* Formulario */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-              <div className="flex">
-                <AlertCircle className="h-5 w-5 text-red-400" />
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800 dark:text-red-300">
-                    {error}
-                  </h3>
+        {/* Columna de Registro */}
+        <div className="w-full md:w-1/2 p-8 sm:p-12 flex flex-col justify-center">
+          <form onSubmit={handleSubmit} className="w-full">
+            <div className="flex flex-col items-center mb-8">
+              <div className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-full mb-4">
+                <User className="text-blue-500 dark:text-blue-400 text-4xl" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
+                Crear Cuenta
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400">
+                ¿Ya tienes una?{" "}
+                <Link
+                  to="/login"
+                  className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                >
+                  Inicia sesión
+                </Link>
+              </p>
+            </div>
+
+            {error && (
+              <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-4 mb-4">
+                <div className="flex">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-red-800 dark:text-red-300">
+                      {error}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          <div className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Email
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div className="relative">
+                <User className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400" />
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  type="text"
+                  placeholder="Nombres"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="input-field pl-12"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-field pl-10"
-                  placeholder="tu@email.com"
+                  disabled={loading}
+                />
+              </div>
+              <div className="relative">
+                <User className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Apellidos"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="input-field pl-12"
+                  required
+                  disabled={loading}
                 />
               </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Contraseña
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pl-10"
-                  placeholder="Mínimo 6 caracteres"
-                />
-              </div>
+            <div className="relative mb-4">
+              <Mail className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="email"
+                placeholder="Correo electrónico"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input-field pl-12"
+                required
+                disabled={loading}
+              />
             </div>
 
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Confirmar Contraseña
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="input-field pl-10"
-                  placeholder="Repite tu contraseña"
-                />
-              </div>
+            <div className="relative mb-6">
+              <Lock className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="password"
+                placeholder="Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input-field pl-12"
+                required
+                disabled={loading}
+              />
             </div>
-          </div>
 
-          <div>
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              className="w-full py-3 flex items-center justify-center rounded-xl text-lg font-semibold text-white transition-all duration-300 transform bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed hover:scale-105 shadow-lg shadow-blue-500/30"
             >
-              {loading ? "Creando cuenta..." : "Crear Cuenta"}
+              {loading ? (
+                <>
+                  <Loader className="animate-spin mr-2" />
+                  Creando cuenta...
+                </>
+              ) : (
+                "Registrarse"
+              )}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

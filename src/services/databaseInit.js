@@ -2,14 +2,17 @@ import { db } from "./firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
 // Función para inicializar usuario automáticamente
-export const initializeUser = async (userId, userEmail) => {
+export const initializeUser = async (user, firstName, lastName) => {
   try {
-    const userRef = doc(db, "users", userId);
+    const userRef = doc(db, "users", user.uid);
     const userDoc = await getDoc(userRef);
 
     if (!userDoc.exists()) {
       await setDoc(userRef, {
-        email: userEmail,
+        email: user.email,
+        displayName: `${firstName} ${lastName}`.trim(),
+        firstName: firstName,
+        lastName: lastName,
         createdAt: new Date(),
         plan: "free",
         lastLogin: new Date(),

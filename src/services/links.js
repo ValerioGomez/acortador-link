@@ -74,14 +74,22 @@ export const createLink = async (linkData) => {
 };
 
 // Obtener enlaces del usuario (VERSIÓN TEMPORAL SIN ÍNDICE)
-export const getUserLinks = async (userId) => {
+export const getUserLinks = async (userId, dateRange = {}) => {
   try {
-    // Consulta simple sin orderBy mientras se crea el índice
-    const q = query(
-      collection(db, "links"),
-      where("owner_uid", "==", userId)
-      // Temporalmente comentado: orderBy('created_at', 'desc')
-    );
+    const { start, end } = dateRange;
+    let queryConstraints = [where("owner_uid", "==", userId)];
+
+    if (start) {
+      queryConstraints.push(where("created_at", ">=", new Date(start)));
+    }
+    if (end) {
+      // Añadimos un día para incluir todo el día de la fecha final
+      const endDate = new Date(end);
+      endDate.setDate(endDate.getDate() + 1);
+      queryConstraints.push(where("created_at", "<", endDate));
+    }
+
+    const q = query(collection(db, "links"), ...queryConstraints);
 
     const querySnapshot = await getDocs(q);
     const links = [];

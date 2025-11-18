@@ -2,40 +2,42 @@ import React, { useState } from "react";
 import { Link2, Lock, Copy, Check, MessageCircle } from "lucide-react";
 import { useLinks } from "../../hooks/useLinks";
 import { useAnalytics } from "../../hooks/useAnalytics";
+import Modal from "./Modal";
+import toast from "react-hot-toast";
 
 const CreateLink = () => {
-  const [formData, setFormData] = useState({
+  const initialFormState = {
     originalUrl: "",
     customSlug: "",
     password: "",
     hasPassword: false,
     customMessage: "", // ← NUEVO CAMPO
-  });
-  const [generatedLink, setGeneratedLink] = useState("");
+  };
+  const [formData, setFormData] = useState(initialFormState);
+  const [generatedLinkDetails, setGeneratedLinkDetails] = useState(null);
   const [copied, setCopied] = useState(false);
   const { addLink, loading } = useLinks();
   const { trackLinkCreated } = useAnalytics();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const newLink = await addLink(formData);
-      setGeneratedLink(newLink.short_url);
       trackLinkCreated(newLink);
+      setGeneratedLinkDetails(newLink); // Guardar detalles para el modal
+      setFormData(initialFormState); // Limpiar el formulario
+      toast.success("¡Enlace creado exitosamente!");
     } catch (error) {
       console.error("Error creando enlace:", error);
+      toast.error("No se pudo crear el enlace.");
     }
   };
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Error al copiar: ", err);
-    }
+  const handleCopyInModal = async () => {
+    if (!generatedLinkDetails) return;
+    await navigator.clipboard.writeText(generatedLinkDetails.short_url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleInputChange = (field, value) => {
@@ -46,7 +48,7 @@ const CreateLink = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="p-6 max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -215,26 +217,27 @@ const CreateLink = () => {
         </form>
       </div>
 
-      {/* Enlace Generado */}
-      {generatedLink && (
-        <div className="card p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-            ¡Enlace Creado Exitosamente!
-          </h3>
+      {/* Modal de Confirmación */}
+      <Modal
+        isOpen={!!generatedLinkDetails}
+        onClose={() => setGeneratedLinkDetails(null)}
+        title="¡Enlace Creado Exitosamente!"
+      >
+        <div className="space-y-4">
           <div className="flex items-center space-x-3">
             <input
               type="text"
               readOnly
-              value={generatedLink}
+              value={generatedLinkDetails?.short_url || ""}
               className="input-field flex-1 font-mono text-sm"
             />
             <button
-              onClick={handleCopy}
+              onClick={handleCopyInModal}
               className="btn-secondary flex items-center space-x-2 min-w-[100px]"
             >
               {copied ? (
                 <>
-                  <Check className="w-4 h-4" />
+                  <Check className="w-4 h-4 text-green-500" />
                   <span>Copiado</span>
                 </>
               ) : (
@@ -245,26 +248,27 @@ const CreateLink = () => {
               )}
             </button>
           </div>
-          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <p className="text-sm text-blue-700 dark:text-blue-300">
-              <strong>URL Original:</strong> {formData.originalUrl}
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <p className="text-sm text-blue-700 dark:text-blue-300 break-all">
+              <strong>URL Original:</strong>{" "}
+              {generatedLinkDetails?.original_url}
             </p>
-            {formData.hasPassword && (
+            {generatedLinkDetails?.password && (
               <>
                 <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                   <strong>Protegido con contraseña:</strong> Sí
                 </p>
-                {formData.customMessage && (
+                {generatedLinkDetails?.custom_message && (
                   <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                     <strong>Mensaje personalizado:</strong>{" "}
-                    {formData.customMessage}
+                    {generatedLinkDetails.custom_message}
                   </p>
                 )}
               </>
             )}
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 };
