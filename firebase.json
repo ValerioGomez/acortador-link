@@ -4,8 +4,8 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
-        "source": "/l/**",
-        "destination": "/index.html"
+        "source": "/l/:shortCode*",
+        "function": "redirect"
       },
       {
         "source": "**",
