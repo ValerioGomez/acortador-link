@@ -44,9 +44,11 @@ const Dashboard = () => {
       if (!user) return;
       setError(null);
       try {
-        // Solo necesitamos obtener las estadísticas aquí.
-        // refreshLinks() ya es llamado por el hook useLinks al inicio.
-        const userStats = await getUserStats(user.uid);
+        // Obtenemos las estadísticas y refrescamos los enlaces al mismo tiempo
+        const [userStats] = await Promise.all([
+          getUserStats(user.uid),
+          refreshLinks(),
+        ]);
         setStats(userStats);
       } catch (err) {
         setError("No se pudo cargar la información del dashboard.");
@@ -54,7 +56,7 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, [user, refreshLinks]);
+  }, [user]);
 
   // Este useEffect se ejecuta DESPUÉS de que 'links' se actualice
   useEffect(() => {
@@ -127,7 +129,7 @@ const Dashboard = () => {
       ]
     : [];
 
-  if (linksLoading || !stats) {
+  if (linksLoading && links.length === 0) {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

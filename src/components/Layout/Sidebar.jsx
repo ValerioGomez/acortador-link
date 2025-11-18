@@ -35,7 +35,7 @@ const Sidebar = ({ open, setOpen }) => {
               <Link className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold text-gray-800 dark:text-white">
-              LinkShort
+              SamSamLink
             </span>
           </div>
           <button
@@ -70,6 +70,24 @@ const Sidebar = ({ open, setOpen }) => {
             ))}
           </ul>
         </nav>
+
+        {/* Footer */}
+        <div className="absolute bottom-0 left-0 w-full p-4 border-t border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+            © {new Date().getFullYear()} SamSamLink
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-1">
+            por{" "}
+            <a
+              href="https://valerio-gomez.web.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium hover:underline text-blue-600 dark:text-blue-400"
+            >
+              Valerio Gomez
+            </a>
+          </p>
+        </div>
       </div>
     </>
   );

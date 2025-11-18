@@ -52,7 +52,7 @@ const Register = () => {
               <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
                 <Link2 className="w-7 h-7 text-white" />
               </div>
-              <h2 className="text-4xl font-bold leading-tight">LinkShort</h2>
+              <h2 className="text-4xl font-bold leading-tight">SamSamLink</h2>
             </div>
             <p className="text-blue-200 text-lg">
               Únete a la comunidad y empieza a acortar, gestionar y analizar tus
@@ -61,8 +61,19 @@ const Register = () => {
           </div>
           <div>
             <p className="text-sm text-blue-200">
-              © {new Date().getFullYear()} LinkShort. Todos los derechos
+              © {new Date().getFullYear()} SamSamLink. Todos los derechos
               reservados.
+            </p>
+            <p className="text-sm text-blue-200/70 mt-1">
+              Desarrollado por{" "}
+              <a
+                href="https://valerio-gomez.web.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-white"
+              >
+                Valerio Gomez
+              </a>
             </p>
           </div>
         </div>

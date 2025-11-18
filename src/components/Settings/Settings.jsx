@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { getUserLinks } from "../../services/links";
@@ -10,6 +10,36 @@ const Settings = () => {
   const { user } = useAuth();
   const [exporting, setExporting] = useState(false);
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+
+  // Función para formatear fechas para los inputs
+  const formatDateForInput = (date) => {
+    if (!date) return "";
+    // Maneja tanto Timestamps de Firebase como objetos Date de JS
+    const d = date.toDate ? date.toDate() : new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Establecer fechas predeterminadas al cargar el usuario
+  useEffect(() => {
+    if (user?.createdAt) {
+      setDateRange({
+        start: formatDateForInput(user.createdAt),
+        end: formatDateForInput(new Date()),
+      });
+    }
+  }, [user]);
+
+  // Sanitiza una celda para prevenir CSV Injection
+  const sanitizeCell = (cell) => {
+    let sanitized = String(cell).replace(/"/g, '""'); // Escapar comillas dobles
+    if (["=", "+", "-", "@"].includes(sanitized.charAt(0))) {
+      sanitized = "'" + sanitized; // Preceder con una comilla simple
+    }
+    return `"${sanitized}"`;
+  };
 
   const handleExportCSV = async () => {
     if (!user) return;
@@ -28,6 +58,14 @@ const Settings = () => {
         return;
       }
 
+      // Construir el encabezado del reporte
+      const reportHeader = [
+        `REPORTE DE ${user.displayName || user.email}`,
+        `PERIODO: ${dateRange.start || "Inicio"} a ${dateRange.end || "Fin"}`,
+        `USUARIO: ${user.displayName} (${user.email})`,
+        "", // Línea en blanco para separar
+      ].join("\n");
+
       const headers = [
         "Enlace Corto",
         "URL Original",
@@ -45,9 +83,11 @@ const Settings = () => {
 
       let csvContent =
         "data:text/csv;charset=utf-8," +
+        reportHeader +
+        "\n" +
         headers.join(",") +
         "\n" +
-        rows.map((e) => e.join(",")).join("\n");
+        rows.join("\n");
 
       const encodedUri = encodeURI(csvContent);
       const linkElement = document.createElement("a");

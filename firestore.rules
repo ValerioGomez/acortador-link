@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Colección de Usuarios:
+    // Un usuario solo puede leer y escribir su propio documento.
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
+    // Colección de Enlaces:
+    match /links/{linkId} {
+      // CUALQUIERA puede leer un enlace (necesario para la redirección).
+      allow get: if true;
+
+      // SOLO el dueño puede listar, crear, actualizar o borrar sus enlaces.
+      allow list, create, update, delete: if request.auth != null && request.auth.uid == resource.data.owner_uid;
+
+      // Regla adicional para la creación: asegurar que el owner_uid sea correcto.
+      allow create: if request.auth != null && request.resource.data.owner_uid == request.auth.uid;
+    }
+
+    // Colección de Logs de Clicks:
+    match /click_logs/{linkId}/logs/{logId} {
+      // CUALQUIERA puede crear un log de click (cuando se visita un enlace).
+      allow create: if true;
+
+      // SOLO el dueño del enlace puede leer los logs de sus propios enlaces.
+      allow read, list: if request.auth != null && get(/databases/$(database)/documents/links/$(linkId)).data.owner_uid == request.auth.uid;
+    }
+
+    // Por defecto, denegar todo lo demás.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

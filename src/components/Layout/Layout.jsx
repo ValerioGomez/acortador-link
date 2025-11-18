@@ -17,7 +17,7 @@ const Layout = () => {
       "/estadisticas": "Estadísticas",
       "/configuracion": "Configuración",
     };
-    return titles[pathname] || "LinkShort";
+    return titles[pathname] || "SamSamLink";
   };
 
   // Tracking de página

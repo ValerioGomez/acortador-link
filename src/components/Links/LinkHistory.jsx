@@ -118,7 +118,7 @@ const LinkHistory = () => {
       <div className="card p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1">
-            <div className="relative max-w-md">
+            <div className="relative w-full max-w-md">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-5 w-5 text-gray-400" />
               </div>
@@ -138,72 +138,55 @@ const LinkHistory = () => {
       </div>
 
       {/* Tabla de enlaces */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Enlace Corto
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  URL Original
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Clicks
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Fecha
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {currentLinks.length === 0 ? (
+      <div className="card">
+        {/* Vista de Tabla para Escritorio (con overflow contenido) */}
+        <div className="hidden md:block">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              {/* ... thead ... */}
+              <thead className="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <Link2 className="w-12 h-12 text-gray-400 mb-4" />
-                      <p className="text-gray-500 dark:text-gray-400">
-                        {searchTerm
-                          ? "No se encontraron enlaces"
-                          : "No tienes enlaces creados"}
-                      </p>
-                      {!searchTerm && (
-                        <p className="text-sm text-gray-400 mt-2">
-                          Crea tu primer enlace desde el panel de creación
-                        </p>
-                      )}
-                    </div>
-                  </td>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Enlace Corto
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    URL Original
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Clicks
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Fecha
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Acciones
+                  </th>
                 </tr>
-              ) : (
-                currentLinks.map((link) => (
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {currentLinks.map((link) => (
                   <tr
                     key={link.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                          {link.short_url}
-                        </span>
-                        <button
-                          onClick={() => handleCopy(link.short_url)}
-                          className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
+                    <td className="px-6 py-4 max-w-xs">
+                      <a
+                        href={link.short_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline break-words"
+                        title={link.short_url}
+                      >
+                        {link.short_url.replace(/^https?:\/\//, "")}
+                      </a>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="max-w-xs">
-                        <p className="text-sm text-gray-900 dark:text-white truncate">
-                          {link.original_url}
-                        </p>
-                      </div>
+                    <td className="px-6 py-4 max-w-sm">
+                      <p
+                        className="text-sm text-gray-900 dark:text-white break-words"
+                        title={link.original_url}
+                      >
+                        {link.original_url}
+                      </p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-1">
@@ -217,24 +200,24 @@ const LinkHistory = () => {
                       {formatDate(link.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3">
                         <button
                           onClick={() => handleCopy(link.short_url)}
-                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                          title="Copiar enlace corto"
+                          className="text-gray-400 hover:text-blue-600"
+                          title="Copiar"
                         >
                           <Copy className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleEditOpen(link)}
-                          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300"
-                          title="Editar URL original"
+                          className="text-gray-400 hover:text-green-600"
+                          title="Editar"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setLinkToDelete(link)}
-                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                          className="text-gray-400 hover:text-red-600"
                           title="Eliminar"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -242,11 +225,88 @@ const LinkHistory = () => {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        {/* Vista de Tarjetas para Móvil */}
+        <div className="md:hidden">
+          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+            {currentLinks.map((link) => (
+              <li key={link.id} className="p-4">
+                <div className="flex items-center justify-between">
+                  <a
+                    href={link.short_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-blue-600 dark:text-blue-400 break-all hover:underline"
+                  >
+                    {link.short_url.replace(/^https?:\/\//, "")}
+                  </a>
+                  <div className="flex items-center space-x-1 text-sm text-gray-500 dark:text-gray-400">
+                    <Eye className="w-4 h-4" />
+                    <span>{link.clicks || 0}</span>
+                  </div>
+                </div>
+                <div className="mt-1">
+                  <p
+                    className="text-sm text-gray-500 dark:text-gray-400 break-all"
+                    title={link.original_url}
+                  >
+                    {link.original_url}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between mt-3">
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    {formatDate(link.created_at)}
+                  </span>
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={() => handleCopy(link.short_url)}
+                      className="text-gray-400 hover:text-blue-600"
+                      title="Copiar"
+                    >
+                      <Copy className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleEditOpen(link)}
+                      className="text-gray-400 hover:text-green-600"
+                      title="Editar"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => setLinkToDelete(link)}
+                      className="text-gray-400 hover:text-red-600"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Mensaje si no hay enlaces */}
+        {currentLinks.length === 0 && (
+          <div className="text-center py-12 px-6">
+            <Link2 className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              {searchTerm
+                ? "No se encontraron enlaces"
+                : "Aún no tienes enlaces"}
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {searchTerm
+                ? "Intenta con otra búsqueda."
+                : "¡Crea tu primer enlace para empezar!"}
+            </p>
+          </div>
+        )}
 
         {/* Paginación */}
         {totalPages > 1 && (

@@ -1,12 +1,40 @@
 import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
-import { Menu, Sun, Moon, User, LogOut, ChevronDown } from "lucide-react";
+import {
+  Menu,
+  Sun,
+  Moon,
+  User,
+  LogOut,
+  ChevronDown,
+  LifeBuoy,
+  Share2,
+} from "lucide-react";
 
 const Header = ({ setSidebarOpen }) => {
   const { user, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+
+  const handleShare = async () => {
+    const shareData = {
+      title: "SamSamLink",
+      text: "¡Descubre SamSamLink, el mejor acortador de enlaces!",
+      url: window.location.origin,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback para navegadores de escritorio
+        setShareMenuOpen(!shareMenuOpen);
+      }
+    } catch (error) {
+      console.error("Error al compartir:", error);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -15,6 +43,11 @@ const Header = ({ setSidebarOpen }) => {
       console.error("Error al cerrar sesión:", error);
     }
   };
+
+  const encodedShareText = encodeURIComponent(
+    "¡Descubre SamSamLink, el mejor acortador de enlaces! " +
+      window.location.origin
+  );
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
@@ -63,8 +96,16 @@ const Header = ({ setSidebarOpen }) => {
 
             {/* Dropdown usuario */}
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+                <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate sm:hidden">
+                    {user?.displayName || "Usuario"}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate sm:hidden">
+                    {user?.email}
+                  </p>
+                </div>
+                <div className="hidden sm:block px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {user?.displayName || "Usuario"}
                   </p>
@@ -72,6 +113,61 @@ const Header = ({ setSidebarOpen }) => {
                     Plan Free
                   </p>
                 </div>
+                <div className="py-1">
+                  <a
+                    href="https://wa.me/51931537331?text=SamSamLink%2C%20Soporte%20Técnico%3A"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors duration-200"
+                  >
+                    <LifeBuoy className="w-4 h-4" />
+                    <span>Soporte Técnico</span>
+                  </a>
+                  <div className="relative">
+                    <button
+                      onClick={handleShare}
+                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors duration-200"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>Compartir</span>
+                    </button>
+                    {shareMenuOpen && (
+                      <div className="absolute right-full top-0 mr-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+                        <a
+                          href={`https://api.whatsapp.com/send?text=${encodedShareText}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          WhatsApp
+                        </a>
+                        <a
+                          href={`https://twitter.com/intent/tweet?text=${encodedShareText}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          Twitter / X
+                        </a>
+                        <a
+                          href={`https://www.facebook.com/sharer/sharer.php?u=${window.location.origin}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          Facebook
+                        </a>
+                        <a
+                          href={`mailto:?subject=Descubre SamSamLink&body=${encodedShareText}`}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          Email
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
